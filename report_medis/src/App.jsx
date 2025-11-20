@@ -140,10 +140,14 @@ export default function App() {
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Laporan Tekanan Darah Pasien</h1>
-        <button onClick={exportToPDF} disabled={records.length === 0} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+        <h1 className="text-2xl sm:text-3xl font-bold">Laporan Tekanan Darah Pasien</h1>
+        <button
+          onClick={exportToPDF}
+          disabled={records.length === 0}
+          className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 text-sm sm:text-base w-full sm:w-auto justify-center"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path
               fillRule="evenodd"
@@ -156,67 +160,76 @@ export default function App() {
       </div>
 
       {/* FORM */}
-      <div className="grid grid-cols-2 gap-4 bg-gray-100 p-4 rounded-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 bg-gray-100 p-3 sm:p-4 rounded-lg">
         <div>
-          <label className="block font-medium">ID Pasien</label>
-          <input type="text" className="border p-2 w-full rounded" value={patientId} onChange={(e) => setPatientId(e.target.value)} />
+          <label className="block font-medium text-sm sm:text-base mb-1">ID Pasien</label>
+          <input type="text" className="border p-2 w-full rounded text-sm sm:text-base" value={patientId} onChange={(e) => setPatientId(e.target.value)} />
         </div>
 
         <div>
-          <label className="block font-medium">Nama Pasien</label>
-          <input type="text" className="border p-2 w-full rounded" value={patientName} onChange={(e) => setPatientName(e.target.value)} />
+          <label className="block font-medium text-sm sm:text-base mb-1">Nama Pasien</label>
+          <input type="text" className="border p-2 w-full rounded text-sm sm:text-base" value={patientName} onChange={(e) => setPatientName(e.target.value)} />
         </div>
 
         <div>
-          <label className="block font-medium">Departemen</label>
-          <input type="text" className="border p-2 w-full rounded" value={department} onChange={(e) => setDepartment(e.target.value)} />
+          <label className="block font-medium text-sm sm:text-base mb-1">Departemen</label>
+          <input type="text" className="border p-2 w-full rounded text-sm sm:text-base" value={department} onChange={(e) => setDepartment(e.target.value)} />
         </div>
 
         <div>
-          <label className="block font-medium">Sistolik</label>
-          <input type="number" className="border p-2 w-full rounded" value={sistolik} onChange={(e) => setSistolik(e.target.value)} />
+          <label className="block font-medium text-sm sm:text-base mb-1">Sistolik</label>
+          <input type="number" className="border p-2 w-full rounded text-sm sm:text-base" value={sistolik} onChange={(e) => setSistolik(e.target.value)} />
         </div>
 
         <div>
-          <label className="block font-medium">Diastolik</label>
-          <input type="number" className="border p-2 w-full rounded" value={diastolik} onChange={(e) => setDiastolik(e.target.value)} />
+          <label className="block font-medium text-sm sm:text-base mb-1">Diastolik</label>
+          <input type="number" className="border p-2 w-full rounded text-sm sm:text-base" value={diastolik} onChange={(e) => setDiastolik(e.target.value)} />
         </div>
 
-        <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded col-span-2 hover:bg-blue-700">
+        <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded col-span-1 sm:col-span-2 hover:bg-blue-700 text-sm sm:text-base">
           Tambah Laporan
         </button>
       </div>
 
       {/* TABEL */}
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="bg-gray-300">
-            <th className="border p-2">ID</th>
-            <th className="border p-2">Nama</th>
-            <th className="border p-2">Departemen</th>
-            <th className="border p-2">Sistolik</th>
-            <th className="border p-2">Diastolik</th>
-            <th className="border p-2">Waktu</th>
-          </tr>
-        </thead>
+      <div className="overflow-x-auto -mx-4 sm:mx-0">
+        <div className="inline-block min-w-full align-middle">
+          <div className="overflow-hidden border border-gray-300 sm:rounded-lg">
+            <table className="min-w-full divide-y divide-gray-300">
+              <thead>
+                <tr className="bg-gray-300">
+                  <th className="border p-2 text-xs sm:text-sm">ID</th>
+                  <th className="border p-2 text-xs sm:text-sm">Nama</th>
+                  <th className="border p-2 text-xs sm:text-sm hidden sm:table-cell">Departemen</th>
+                  <th className="border p-2 text-xs sm:text-sm">Sistolik</th>
+                  <th className="border p-2 text-xs sm:text-sm">Diastolik</th>
+                  <th className="border p-2 text-xs sm:text-sm hidden md:table-cell">Waktu</th>
+                </tr>
+              </thead>
 
-        <tbody>
-          {records.map((r, i) => (
-            <tr key={i} className={r.color}>
-              <td className="border p-2">{r.id}</td>
-              <td className="border p-2">{r.name}</td>
-              <td className="border p-2">{r.dept}</td>
-              <td className="border p-2">{r.systolic}</td>
-              <td className="border p-2">{r.diastolic}</td>
-              <td className="border p-2">{r.time}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              <tbody>
+                {records.map((r, i) => (
+                  <tr key={i} className={r.color}>
+                    <td className="border p-2 text-xs sm:text-sm">{r.id}</td>
+                    <td className="border p-2 text-xs sm:text-sm">{r.name}</td>
+                    <td className="border p-2 text-xs sm:text-sm hidden sm:table-cell">{r.dept}</td>
+                    <td className="border p-2 text-xs sm:text-sm">{r.systolic}</td>
+                    <td className="border p-2 text-xs sm:text-sm">{r.diastolic}</td>
+                    <td className="border p-2 text-xs sm:text-sm hidden md:table-cell">{r.time}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
       {/* GRAFIK */}
-      <div className="bg-white p-4 rounded shadow">
-        <Line ref={chartRef} data={chartData} />
+      <div className="bg-white p-3 sm:p-4 rounded shadow">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Grafik Tekanan Darah</h2>
+        <div className="w-full h-64 sm:h-80 md:h-96">
+          <Line ref={chartRef} data={chartData} options={{ maintainAspectRatio: false, responsive: true }} />
+        </div>
       </div>
     </div>
   );
