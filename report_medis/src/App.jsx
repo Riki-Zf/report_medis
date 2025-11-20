@@ -65,6 +65,20 @@ export default function App() {
     setDiastolik("");
   };
 
+  const handleDelete = (index) => {
+    if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+      const newRecords = records.filter((_, i) => i !== index);
+      setRecords(newRecords);
+    }
+  };
+
+  const handleDeleteAll = () => {
+    if (window.confirm("Apakah Anda yakin ingin menghapus SEMUA data?")) {
+      setRecords([]);
+      localStorage.removeItem("records");
+    }
+  };
+
   const exportToPDF = () => {
     const doc = new jsPDF();
 
@@ -143,20 +157,36 @@ export default function App() {
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
         <h1 className="text-2xl sm:text-3xl font-bold">Laporan Tekanan Darah Pasien</h1>
-        <button
-          onClick={exportToPDF}
-          disabled={records.length === 0}
-          className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 text-sm sm:text-base w-full sm:w-auto justify-center"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Ekspor PDF
-        </button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button
+            onClick={handleDeleteAll}
+            disabled={records.length === 0}
+            className="bg-red-600 text-white px-3 sm:px-4 py-2 rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-initial justify-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Hapus Semua
+          </button>
+          <button
+            onClick={exportToPDF}
+            disabled={records.length === 0}
+            className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-initial justify-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Ekspor PDF
+          </button>
+        </div>
       </div>
 
       {/* FORM */}
@@ -204,6 +234,7 @@ export default function App() {
                   <th className="border p-2 text-xs sm:text-sm">Sistolik</th>
                   <th className="border p-2 text-xs sm:text-sm">Diastolik</th>
                   <th className="border p-2 text-xs sm:text-sm hidden md:table-cell">Waktu</th>
+                  <th className="border p-2 text-xs sm:text-sm">Aksi</th>
                 </tr>
               </thead>
 
@@ -216,6 +247,18 @@ export default function App() {
                     <td className="border p-2 text-xs sm:text-sm">{r.systolic}</td>
                     <td className="border p-2 text-xs sm:text-sm">{r.diastolic}</td>
                     <td className="border p-2 text-xs sm:text-sm hidden md:table-cell">{r.time}</td>
+                    <td className="border p-2 text-center">
+                      <button onClick={() => handleDelete(i)} className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs sm:text-sm inline-flex items-center gap-1" title="Hapus data">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path
+                            fillRule="evenodd"
+                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span className="hidden sm:inline">Hapus</span>
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
