@@ -7,11 +7,18 @@ import autoTable from "jspdf-autotable";
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip);
 
 export default function App() {
-  const [patientId, setPatientId] = useState("");
-  const [patientName, setPatientName] = useState("");
+  const [nama, setNama] = useState("");
+  const [bn, setBn] = useState("");
+  const [umur, setUmur] = useState("");
+  const [jabatan, setJabatan] = useState("");
+  const [supervisor, setSupervisor] = useState("");
   const [department, setDepartment] = useState("");
   const [sistolik, setSistolik] = useState("");
   const [diastolik, setDiastolik] = useState("");
+  const [nadi, setNadi] = useState("");
+  const [spo2, setSpo2] = useState("");
+  const [suhu, setSuhu] = useState("");
+  const [tanggal, setTanggal] = useState("");
   const [records, setRecords] = useState([]);
   const chartRef = useRef(null);
 
@@ -40,29 +47,69 @@ export default function App() {
     return "Hipertensi Tahap 2";
   };
 
+  const getFitnessStatus = (sys, dia, nadi, spo2, suhu) => {
+    // Cek tekanan darah
+    const bpNormal = sys < 140 && dia < 90;
+
+    // Cek nadi (normal: 60-100 bpm)
+    const nadiNormal = nadi >= 60 && nadi <= 100;
+
+    // Cek SpO2 (normal: >= 95%)
+    const spo2Normal = spo2 >= 95;
+
+    // Cek suhu (normal: 36-37.5°C)
+    const suhuNormal = suhu >= 36 && suhu <= 37.5;
+
+    // Jika semua parameter normal = FIT
+    if (bpNormal && nadiNormal && spo2Normal && suhuNormal) {
+      return "FIT";
+    }
+
+    return "TIDAK FIT";
+  };
+
+  const getFitnessColor = (status) => {
+    return status === "FIT" ? "text-green-700 font-bold" : "text-red-700 font-bold";
+  };
+
   const handleSubmit = () => {
-    if (!patientId || !patientName || !department || !sistolik || !diastolik) {
+    if (!nama || !bn || !umur || !jabatan || !supervisor || !department || !sistolik || !diastolik || !nadi || !spo2 || !suhu || !tanggal) {
       alert("Semua field harus diisi!");
       return;
     }
 
     const newRecord = {
-      id: patientId,
-      name: patientName,
+      nama,
+      bn,
+      umur: Number(umur),
+      jabatan,
+      supervisor,
       dept: department,
       systolic: Number(sistolik),
       diastolic: Number(diastolik),
+      nadi: Number(nadi),
+      spo2: Number(spo2),
+      suhu: Number(suhu),
+      tanggal,
       time: new Date().toLocaleTimeString(),
       color: getColor(Number(sistolik), Number(diastolik)),
+      fitness: getFitnessStatus(Number(sistolik), Number(diastolik), Number(nadi), Number(spo2), Number(suhu)),
     };
 
     setRecords([...records, newRecord]);
 
-    setPatientId("");
-    setPatientName("");
+    setNama("");
+    setBn("");
+    setUmur("");
+    setJabatan("");
+    setSupervisor("");
     setDepartment("");
     setSistolik("");
     setDiastolik("");
+    setNadi("");
+    setSpo2("");
+    setSuhu("");
+    setTanggal("");
   };
 
   const handleDelete = (index) => {
@@ -80,27 +127,27 @@ export default function App() {
   };
 
   const exportToPDF = () => {
-    const doc = new jsPDF();
+    const doc = new jsPDF("landscape");
 
     // Judul
     doc.setFontSize(18);
-    doc.text("Laporan Tekanan Darah Pasien", 14, 20);
+    doc.text("Laporan Kesehatan Karyawan", 14, 20);
 
     // Tanggal cetak
     doc.setFontSize(10);
     doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString("id-ID")}`, 14, 28);
 
-    // Tabel data pasien
-    const tableData = records.map((r) => [r.id, r.name, r.dept, r.systolic, r.diastolic, r.time, getBloodPressureStatus(r.systolic, r.diastolic)]);
+    // Tabel data
+    const tableData = records.map((r) => [r.nama, r.bn, r.umur, r.jabatan, r.supervisor, r.dept, r.systolic, r.diastolic, r.nadi, r.spo2 + "%", r.suhu + "°C", r.tanggal, getBloodPressureStatus(r.systolic, r.diastolic), r.fitness]);
 
     autoTable(doc, {
-      head: [["ID", "Nama", "Departemen", "Sistolik", "Diastolik", "Waktu", "Status"]],
+      head: [["Nama", "BN", "Umur", "Jabatan", "Supervisor", "Dept", "Sistolik", "Diastolik", "Nadi", "SpO2", "Suhu", "Tanggal", "Status TD", "Status Fit"]],
       body: tableData,
       startY: 35,
-      styles: { fontSize: 9 },
+      styles: { fontSize: 7 },
       headStyles: { fillColor: [59, 130, 246] },
       didDrawCell: (data) => {
-        if (data.section === "body" && data.column.index === 6) {
+        if (data.section === "body" && data.column.index === 12) {
           const status = data.cell.raw;
           if (status === "Normal") {
             data.cell.styles.fillColor = [187, 247, 208];
@@ -112,6 +159,16 @@ export default function App() {
             data.cell.styles.fillColor = [252, 165, 165];
           }
         }
+        if (data.section === "body" && data.column.index === 13) {
+          const status = data.cell.raw;
+          if (status === "FIT") {
+            data.cell.styles.fillColor = [187, 247, 208];
+            data.cell.styles.fontStyle = "bold";
+          } else {
+            data.cell.styles.fillColor = [252, 165, 165];
+            data.cell.styles.fontStyle = "bold";
+          }
+        }
       },
     });
 
@@ -121,16 +178,16 @@ export default function App() {
       doc.addPage();
       doc.setFontSize(14);
       doc.text("Grafik Tekanan Darah", 14, 20);
-      doc.addImage(chartImage, "PNG", 14, 30, 180, 100);
+      doc.addImage(chartImage, "PNG", 14, 30, 260, 100);
     }
 
     // Simpan PDF
-    doc.save(`laporan-tekanan-darah-${new Date().toLocaleDateString("id-ID")}.pdf`);
+    doc.save(`laporan-kesehatan-${new Date().toLocaleDateString("id-ID")}.pdf`);
   };
 
   // Data grafik tetap berdasarkan tekanan darah
   const chartData = {
-    labels: records.map((r) => r.time),
+    labels: records.map((r) => r.tanggal || r.time),
     datasets: [
       {
         label: "Sistolik",
@@ -156,7 +213,7 @@ export default function App() {
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
-        <h1 className="text-2xl sm:text-3xl font-bold">Laporan Tekanan Darah Pasien</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Laporan Kesehatan Karyawan</h1>
         <div className="flex gap-2 w-full sm:w-auto">
           <button
             onClick={handleDeleteAll}
@@ -190,15 +247,30 @@ export default function App() {
       </div>
 
       {/* FORM */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 bg-gray-100 p-3 sm:p-4 rounded-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 bg-gray-100 p-3 sm:p-4 rounded-lg">
         <div>
-          <label className="block font-medium text-sm sm:text-base mb-1">ID Pasien</label>
-          <input type="text" className="border p-2 w-full rounded text-sm sm:text-base" value={patientId} onChange={(e) => setPatientId(e.target.value)} />
+          <label className="block font-medium text-sm sm:text-base mb-1">Nama</label>
+          <input type="text" className="border p-2 w-full rounded text-sm sm:text-base" value={nama} onChange={(e) => setNama(e.target.value)} />
         </div>
 
         <div>
-          <label className="block font-medium text-sm sm:text-base mb-1">Nama Pasien</label>
-          <input type="text" className="border p-2 w-full rounded text-sm sm:text-base" value={patientName} onChange={(e) => setPatientName(e.target.value)} />
+          <label className="block font-medium text-sm sm:text-base mb-1">BN</label>
+          <input type="text" className="border p-2 w-full rounded text-sm sm:text-base" value={bn} onChange={(e) => setBn(e.target.value)} />
+        </div>
+
+        <div>
+          <label className="block font-medium text-sm sm:text-base mb-1">Umur</label>
+          <input type="number" className="border p-2 w-full rounded text-sm sm:text-base" value={umur} onChange={(e) => setUmur(e.target.value)} />
+        </div>
+
+        <div>
+          <label className="block font-medium text-sm sm:text-base mb-1">Jabatan</label>
+          <input type="text" className="border p-2 w-full rounded text-sm sm:text-base" value={jabatan} onChange={(e) => setJabatan(e.target.value)} />
+        </div>
+
+        <div>
+          <label className="block font-medium text-sm sm:text-base mb-1">Supervisor</label>
+          <input type="text" className="border p-2 w-full rounded text-sm sm:text-base" value={supervisor} onChange={(e) => setSupervisor(e.target.value)} />
         </div>
 
         <div>
@@ -216,7 +288,27 @@ export default function App() {
           <input type="number" className="border p-2 w-full rounded text-sm sm:text-base" value={diastolik} onChange={(e) => setDiastolik(e.target.value)} />
         </div>
 
-        <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded col-span-1 sm:col-span-2 hover:bg-blue-700 text-sm sm:text-base">
+        <div>
+          <label className="block font-medium text-sm sm:text-base mb-1">Nadi</label>
+          <input type="number" className="border p-2 w-full rounded text-sm sm:text-base" value={nadi} onChange={(e) => setNadi(e.target.value)} />
+        </div>
+
+        <div>
+          <label className="block font-medium text-sm sm:text-base mb-1">Oksigen Darah (SpO2)</label>
+          <input type="number" className="border p-2 w-full rounded text-sm sm:text-base" value={spo2} onChange={(e) => setSpo2(e.target.value)} />
+        </div>
+
+        <div>
+          <label className="block font-medium text-sm sm:text-base mb-1">Suhu Badan (°C)</label>
+          <input type="number" step="0.1" className="border p-2 w-full rounded text-sm sm:text-base" value={suhu} onChange={(e) => setSuhu(e.target.value)} />
+        </div>
+
+        <div>
+          <label className="block font-medium text-sm sm:text-base mb-1">Tanggal</label>
+          <input type="date" className="border p-2 w-full rounded text-sm sm:text-base" value={tanggal} onChange={(e) => setTanggal(e.target.value)} />
+        </div>
+
+        <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded col-span-1 sm:col-span-2 lg:col-span-3 hover:bg-blue-700 text-sm sm:text-base">
           Tambah Laporan
         </button>
       </div>
@@ -228,12 +320,19 @@ export default function App() {
             <table className="min-w-full divide-y divide-gray-300">
               <thead>
                 <tr className="bg-gray-300">
-                  <th className="border p-2 text-xs sm:text-sm">ID</th>
                   <th className="border p-2 text-xs sm:text-sm">Nama</th>
-                  <th className="border p-2 text-xs sm:text-sm hidden sm:table-cell">Departemen</th>
+                  <th className="border p-2 text-xs sm:text-sm">BN</th>
+                  <th className="border p-2 text-xs sm:text-sm hidden lg:table-cell">Umur</th>
+                  <th className="border p-2 text-xs sm:text-sm hidden md:table-cell">Jabatan</th>
+                  <th className="border p-2 text-xs sm:text-sm hidden xl:table-cell">Supervisor</th>
+                  <th className="border p-2 text-xs sm:text-sm hidden lg:table-cell">Dept</th>
                   <th className="border p-2 text-xs sm:text-sm">Sistolik</th>
                   <th className="border p-2 text-xs sm:text-sm">Diastolik</th>
-                  <th className="border p-2 text-xs sm:text-sm hidden md:table-cell">Waktu</th>
+                  <th className="border p-2 text-xs sm:text-sm hidden md:table-cell">Nadi</th>
+                  <th className="border p-2 text-xs sm:text-sm hidden lg:table-cell">SpO2</th>
+                  <th className="border p-2 text-xs sm:text-sm hidden lg:table-cell">Suhu</th>
+                  <th className="border p-2 text-xs sm:text-sm hidden xl:table-cell">Tanggal</th>
+                  <th className="border p-2 text-xs sm:text-sm">Status Fit</th>
                   <th className="border p-2 text-xs sm:text-sm">Aksi</th>
                 </tr>
               </thead>
@@ -241,12 +340,19 @@ export default function App() {
               <tbody>
                 {records.map((r, i) => (
                   <tr key={i} className={r.color}>
-                    <td className="border p-2 text-xs sm:text-sm">{r.id}</td>
-                    <td className="border p-2 text-xs sm:text-sm">{r.name}</td>
-                    <td className="border p-2 text-xs sm:text-sm hidden sm:table-cell">{r.dept}</td>
+                    <td className="border p-2 text-xs sm:text-sm">{r.nama}</td>
+                    <td className="border p-2 text-xs sm:text-sm">{r.bn}</td>
+                    <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.umur}</td>
+                    <td className="border p-2 text-xs sm:text-sm hidden md:table-cell">{r.jabatan}</td>
+                    <td className="border p-2 text-xs sm:text-sm hidden xl:table-cell">{r.supervisor}</td>
+                    <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.dept}</td>
                     <td className="border p-2 text-xs sm:text-sm">{r.systolic}</td>
                     <td className="border p-2 text-xs sm:text-sm">{r.diastolic}</td>
-                    <td className="border p-2 text-xs sm:text-sm hidden md:table-cell">{r.time}</td>
+                    <td className="border p-2 text-xs sm:text-sm hidden md:table-cell">{r.nadi}</td>
+                    <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.spo2}%</td>
+                    <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.suhu}°C</td>
+                    <td className="border p-2 text-xs sm:text-sm hidden xl:table-cell">{r.tanggal}</td>
+                    <td className={`border p-2 text-xs sm:text-sm text-center ${getFitnessColor(r.fitness)}`}>{r.fitness}</td>
                     <td className="border p-2 text-center">
                       <button onClick={() => handleDelete(i)} className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs sm:text-sm inline-flex items-center gap-1" title="Hapus data">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
