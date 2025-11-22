@@ -50,27 +50,59 @@ export default function App() {
 
   const getFitnessStatus = (sys, dia, nadi, spo2, suhu) => {
     // Cek tekanan darah
-    const bpNormal = sys < 140 && dia < 90;
-
-    // Cek nadi (normal: 60-100 bpm)
-    const nadiNormal = nadi >= 60 && nadi <= 100;
-
-    // Cek SpO2 (normal: >= 95%)
-    const spo2Normal = spo2 >= 95;
-
-    // Cek suhu (normal: 36-37.5°C)
-    const suhuNormal = suhu >= 36 && suhu <= 37.5;
-
-    // Jika semua parameter normal = FIT
-    if (bpNormal && nadiNormal && spo2Normal && suhuNormal) {
-      return "FIT";
+    // FIT: <130/90, FIT WITH NOTE: 130-149/90-99, UNFIT: >=150/100
+    let bpStatus = "FIT";
+    if (sys >= 150 || dia >= 100) {
+      bpStatus = "UNFIT";
+    } else if ((sys >= 130 && sys < 150) || (dia >= 90 && dia < 100)) {
+      bpStatus = "FIT WITH NOTE";
     }
 
-    return "TIDAK FIT";
+    // Cek nadi
+    // FIT: <100, FIT WITH NOTE: 100-130, UNFIT: >130
+    let nadiStatus = "FIT";
+    if (nadi > 130) {
+      nadiStatus = "UNFIT";
+    } else if (nadi >= 100 && nadi <= 130) {
+      nadiStatus = "FIT WITH NOTE";
+    }
+
+    // Cek SpO2 (normal: >= 95%)
+    let spo2Status = "FIT";
+    if (spo2 < 92) {
+      spo2Status = "UNFIT";
+    } else if (spo2 >= 92 && spo2 < 95) {
+      spo2Status = "FIT WITH NOTE";
+    }
+
+    // Cek suhu
+    // FIT: <37.5, FIT WITH NOTE: 37.5-37.9, UNFIT: >=38
+    let suhuStatus = "FIT";
+    if (suhu >= 38) {
+      suhuStatus = "UNFIT";
+    } else if (suhu >= 37.5 && suhu < 38) {
+      suhuStatus = "FIT WITH NOTE";
+    }
+
+    // Tentukan status akhir
+    // Jika ada salah satu UNFIT = UNFIT
+    if (bpStatus === "UNFIT" || nadiStatus === "UNFIT" || spo2Status === "UNFIT" || suhuStatus === "UNFIT") {
+      return "TIDAK FIT";
+    }
+
+    // Jika ada salah satu FIT WITH NOTE = FIT WITH NOTE
+    if (bpStatus === "FIT WITH NOTE" || nadiStatus === "FIT WITH NOTE" || spo2Status === "FIT WITH NOTE" || suhuStatus === "FIT WITH NOTE") {
+      return "FIT WITH NOTE";
+    }
+
+    // Jika semua FIT = FIT
+    return "FIT";
   };
 
   const getFitnessColor = (status) => {
-    return status === "FIT" ? "text-green-700 font-bold" : "text-red-700 font-bold";
+    if (status === "FIT") return "text-green-700 font-bold";
+    if (status === "FIT WITH NOTE") return "text-orange-600 font-bold";
+    return "text-red-700 font-bold";
   };
 
   const handleSubmit = () => {
@@ -210,6 +242,9 @@ export default function App() {
           const status = data.cell.raw;
           if (status === "FIT") {
             data.cell.styles.fillColor = [187, 247, 208];
+            data.cell.styles.fontStyle = "bold";
+          } else if (status === "FIT WITH NOTE") {
+            data.cell.styles.fillColor = [253, 186, 116];
             data.cell.styles.fontStyle = "bold";
           } else {
             data.cell.styles.fillColor = [252, 165, 165];
