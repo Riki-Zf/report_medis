@@ -1,10 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { Line } from "react-chartjs-2";
-import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip } from "chart.js";
+import { useState, useEffect } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Legend, Tooltip);
 
 export default function App() {
   const [nama, setNama] = useState("");
@@ -21,7 +17,6 @@ export default function App() {
   const [tanggal, setTanggal] = useState("");
   const [records, setRecords] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
-  const chartRef = useRef(null);
 
   // LOAD DATA DARI LOCAL STORAGE SAAT AWAL
   useEffect(() => {
@@ -254,42 +249,8 @@ export default function App() {
       },
     });
 
-    // Tambahkan grafik
-    if (records.length > 0 && chartRef.current) {
-      const chartImage = chartRef.current.toBase64Image();
-      doc.addPage();
-      doc.setFontSize(14);
-      doc.text("Grafik Tekanan Darah", 14, 20);
-      doc.addImage(chartImage, "PNG", 14, 30, 260, 100);
-    }
-
     // Simpan PDF
     doc.save(`laporan-kesehatan-${new Date().toLocaleDateString("id-ID")}.pdf`);
-  };
-
-  // Data grafik tetap berdasarkan tekanan darah
-  const chartData = {
-    labels: records.map((r) => r.tanggal || r.time),
-    datasets: [
-      {
-        label: "Sistolik",
-        data: records.map((r) => r.systolic),
-        borderWidth: 2,
-        borderColor: "rgb(59, 130, 246)",
-        backgroundColor: "rgba(59, 130, 246, 0.4)",
-        tension: 0.3,
-        pointRadius: 5,
-      },
-      {
-        label: "Diastolik",
-        data: records.map((r) => r.diastolic),
-        borderWidth: 2,
-        borderColor: "rgb(239, 68, 68)",
-        backgroundColor: "rgba(239, 68, 68, 0.4)",
-        tension: 0.3,
-        pointRadius: 5,
-      },
-    ],
   };
 
   return (
@@ -471,14 +432,6 @@ export default function App() {
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      {/* GRAFIK */}
-      <div className="bg-white p-3 sm:p-4 rounded shadow">
-        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Grafik Tekanan Darah</h2>
-        <div className="w-full h-64 sm:h-80 md:h-96">
-          <Line ref={chartRef} data={chartData} options={{ maintainAspectRatio: false, responsive: true }} />
         </div>
       </div>
     </div>
