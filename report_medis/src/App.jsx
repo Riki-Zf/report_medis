@@ -15,6 +15,7 @@ export default function App() {
   const [spo2, setSpo2] = useState("");
   const [suhu, setSuhu] = useState("");
   const [tanggal, setTanggal] = useState("");
+  const [catatan, setCatatan] = useState(""); // State baru untuk catatan
   const [records, setRecords] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
 
@@ -106,6 +107,14 @@ export default function App() {
       return;
     }
 
+    const fitnessStatus = getFitnessStatus(Number(sistolik), Number(diastolik), Number(nadi), Number(spo2), Number(suhu));
+
+    // Jika status FIT WITH NOTE tapi catatan kosong, beri peringatan
+    if (fitnessStatus === "FIT WITH NOTE" && !catatan.trim()) {
+      alert("Harap isi catatan untuk status FIT WITH NOTE");
+      return;
+    }
+
     const newRecord = {
       nama,
       bn,
@@ -121,7 +130,8 @@ export default function App() {
       tanggal,
       time: new Date().toLocaleTimeString(),
       color: getColor(Number(sistolik), Number(diastolik)),
-      fitness: getFitnessStatus(Number(sistolik), Number(diastolik), Number(nadi), Number(spo2), Number(suhu)),
+      fitness: fitnessStatus,
+      catatan: fitnessStatus === "FIT WITH NOTE" ? catatan : "", // Simpan catatan hanya untuk FIT WITH NOTE
     };
 
     if (editIndex !== null) {
@@ -148,6 +158,7 @@ export default function App() {
     setSpo2("");
     setSuhu("");
     setTanggal("");
+    setCatatan(""); // Reset catatan
   };
 
   const handleEdit = (index) => {
@@ -164,6 +175,7 @@ export default function App() {
     setSpo2(record.spo2.toString());
     setSuhu(record.suhu.toString());
     setTanggal(record.tanggal);
+    setCatatan(record.catatan || ""); // Load catatan jika ada
     setEditIndex(index);
 
     // Scroll ke form
@@ -184,6 +196,7 @@ export default function App() {
     setSpo2("");
     setSuhu("");
     setTanggal("");
+    setCatatan(""); // Reset catatan
   };
 
   const handleDelete = (index) => {
@@ -212,10 +225,26 @@ export default function App() {
     doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString("id-ID")}`, 14, 28);
 
     // Tabel data
-    const tableData = records.map((r) => [r.nama, r.bn, r.umur, r.jabatan, r.supervisor, r.dept, r.systolic, r.diastolic, r.nadi, r.spo2 + "%", r.suhu + "°C", r.tanggal, getBloodPressureStatus(r.systolic, r.diastolic), r.fitness]);
+    const tableData = records.map((r) => [
+      r.nama,
+      r.bn,
+      r.umur,
+      r.jabatan,
+      r.supervisor,
+      r.dept,
+      r.systolic,
+      r.diastolic,
+      r.nadi,
+      r.spo2 + "%",
+      r.suhu + "°C",
+      r.tanggal,
+      getBloodPressureStatus(r.systolic, r.diastolic),
+      r.fitness,
+      r.catatan || "-", // Tambahkan kolom catatan
+    ]);
 
     autoTable(doc, {
-      head: [["Nama", "BN", "Umur", "Jabatan", "Supervisor", "Dept", "Sistolik", "Diastolik", "Nadi", "SpO2", "Suhu", "Tanggal", "Status TD", "Status Fit"]],
+      head: [["Nama", "BN", "Umur", "Jabatan", "Supervisor", "Dept", "Sistolik", "Diastolik", "Nadi", "SpO2", "Suhu", "Tanggal", "Status TD", "Status Fit", "Catatan"]],
       body: tableData,
       startY: 35,
       styles: { fontSize: 7 },
@@ -361,6 +390,12 @@ export default function App() {
             <input type="date" className="border p-2 w-full rounded text-sm sm:text-base" value={tanggal} onChange={(e) => setTanggal(e.target.value)} />
           </div>
 
+          {/* Kolom Catatan - akan muncul otomatis jika status FIT WITH NOTE */}
+          <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+            <label className="block font-medium text-sm sm:text-base mb-1">Catatan (Wajib diisi jika status FIT WITH NOTE)</label>
+            <textarea className="border p-2 w-full rounded text-sm sm:text-base" value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Masukkan catatan khusus untuk status FIT WITH NOTE" rows="3" />
+          </div>
+
           <button onClick={handleSubmit} className={`${editIndex !== null ? "bg-orange-600 hover:bg-orange-700" : "bg-blue-600 hover:bg-blue-700"} text-white px-4 py-2 rounded col-span-1 sm:col-span-2 lg:col-span-3 text-sm sm:text-base`}>
             {editIndex !== null ? "Update Laporan" : "Tambah Laporan"}
           </button>
@@ -387,6 +422,7 @@ export default function App() {
                   <th className="border p-2 text-xs sm:text-sm hidden lg:table-cell">Suhu</th>
                   <th className="border p-2 text-xs sm:text-sm hidden xl:table-cell">Tanggal</th>
                   <th className="border p-2 text-xs sm:text-sm">Status Fit</th>
+                  <th className="border p-2 text-xs sm:text-sm hidden lg:table-cell">Catatan</th>
                   <th className="border p-2 text-xs sm:text-sm">Aksi</th>
                 </tr>
               </thead>
@@ -407,6 +443,7 @@ export default function App() {
                     <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.suhu}°C</td>
                     <td className="border p-2 text-xs sm:text-sm hidden xl:table-cell">{r.tanggal}</td>
                     <td className={`border p-2 text-xs sm:text-sm text-center ${getFitnessColor(r.fitness)}`}>{r.fitness}</td>
+                    <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.catatan || "-"}</td>
                     <td className="border p-2 text-center">
                       <div className="flex gap-1 justify-center">
                         <button onClick={() => handleEdit(i)} className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs sm:text-sm inline-flex items-center gap-1" title="Edit data">
