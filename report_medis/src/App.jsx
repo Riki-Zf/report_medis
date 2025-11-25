@@ -18,6 +18,17 @@ export default function App() {
   const [catatan, setCatatan] = useState(""); // State baru untuk catatan
   const [records, setRecords] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
+  const [reportType, setReportType] = useState("daily"); // 'daily' atau 'weekly'
+  const [reportDate, setReportDate] = useState(new Date().toISOString().split("T")[0]); // Untuk daily
+  const [reportWeek, setReportWeek] = useState(getCurrentWeek()); // Untuk weekly
+
+  // Fungsi untuk mendapatkan minggu saat ini dalam format YYYY-Www
+  function getCurrentWeek() {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const pastDaysOfYear = (now - startOfYear) / 86400000;
+    return now.getFullYear() + "-W" + Math.ceil((pastDaysOfYear + 1) / 7);
+  }
 
   // LOAD DATA DARI LOCAL STORAGE SAAT AWAL
   useEffect(() => {
@@ -213,19 +224,58 @@ export default function App() {
     }
   };
 
+  // Fungsi untuk mendapatkan data berdasarkan tanggal (daily)
+  const getDailyRecords = () => {
+    return records.filter((record) => record.tanggal === reportDate);
+  };
+
+  // Fungsi untuk mendapatkan data berdasarkan minggu (weekly)
+  const getWeeklyRecords = () => {
+    const [year, weekStr] = reportWeek.split("-W");
+    const week = parseInt(weekStr);
+
+    return records.filter((record) => {
+      const recordDate = new Date(record.tanggal);
+      const recordYear = recordDate.getFullYear();
+      const startOfYear = new Date(recordYear, 0, 1);
+      const pastDaysOfYear = (recordDate - startOfYear) / 86400000;
+      const recordWeek = Math.ceil((pastDaysOfYear + 1) / 7);
+
+      return recordYear === parseInt(year) && recordWeek === week;
+    });
+  };
+
+  // Fungsi untuk mendapatkan data yang akan ditampilkan berdasarkan tipe laporan
+  const getFilteredRecords = () => {
+    if (reportType === "daily") {
+      return getDailyRecords();
+    } else {
+      return getWeeklyRecords();
+    }
+  };
+
   const exportToPDF = () => {
     const doc = new jsPDF("landscape");
+    const filteredRecords = getFilteredRecords();
+
+    // Judul berdasarkan tipe laporan
+    let reportTitle = "Laporan Kesehatan Karyawan";
+    if (reportType === "daily") {
+      reportTitle = `Laporan Kesehatan Harian - ${new Date(reportDate).toLocaleDateString("id-ID")}`;
+    } else {
+      reportTitle = `Laporan Kesehatan Mingguan - ${reportWeek}`;
+    }
 
     // Judul
     doc.setFontSize(18);
-    doc.text("Laporan Kesehatan Karyawan", 14, 20);
+    doc.text(reportTitle, 14, 20);
 
     // Tanggal cetak
     doc.setFontSize(10);
     doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString("id-ID")}`, 14, 28);
 
     // Tabel data
-    const tableData = records.map((r) => [
+    const tableData = filteredRecords.map((r) => [
       r.nama,
       r.bn,
       r.umur,
@@ -279,8 +329,41 @@ export default function App() {
     });
 
     // Simpan PDF
-    doc.save(`laporan-kesehatan-${new Date().toLocaleDateString("id-ID")}.pdf`);
+    let fileName = `laporan-kesehatan-${new Date().toLocaleDateString("id-ID")}`;
+    if (reportType === "daily") {
+      fileName = `laporan-harian-${reportDate}`;
+    } else {
+      fileName = `laporan-mingguan-${reportWeek}`;
+    }
+    doc.save(`${fileName}.pdf`);
   };
+
+  // Fungsi untuk mendapatkan statistik
+  const getStatistics = () => {
+    const filteredRecords = getFilteredRecords();
+    const total = filteredRecords.length;
+
+    if (total === 0) {
+      return { total: 0, fit: 0, fitWithNote: 0, unfit: 0 };
+    }
+
+    const fit = filteredRecords.filter((r) => r.fitness === "FIT").length;
+    const fitWithNote = filteredRecords.filter((r) => r.fitness === "FIT WITH NOTE").length;
+    const unfit = filteredRecords.filter((r) => r.fitness === "TIDAK FIT").length;
+
+    return {
+      total,
+      fit,
+      fitWithNote,
+      unfit,
+      fitPercentage: ((fit / total) * 100).toFixed(1),
+      fitWithNotePercentage: ((fitWithNote / total) * 100).toFixed(1),
+      unfitPercentage: ((unfit / total) * 100).toFixed(1),
+    };
+  };
+
+  const stats = getStatistics();
+  const filteredRecords = getFilteredRecords();
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
@@ -303,7 +386,7 @@ export default function App() {
           </button>
           <button
             onClick={exportToPDF}
-            disabled={records.length === 0}
+            disabled={filteredRecords.length === 0}
             className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-initial justify-center"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -317,6 +400,71 @@ export default function App() {
           </button>
         </div>
       </div>
+
+      {/* FILTER LAPORAN */}
+      <div className="bg-white p-4 rounded-lg border border-gray-300">
+        <h2 className="text-lg font-semibold mb-3">Filter Laporan</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block font-medium text-sm sm:text-base mb-1">Tipe Laporan</label>
+            <select className="border p-2 w-full rounded text-sm sm:text-base" value={reportType} onChange={(e) => setReportType(e.target.value)}>
+              <option value="daily">Harian</option>
+              <option value="weekly">Mingguan</option>
+            </select>
+          </div>
+
+          {reportType === "daily" ? (
+            <div>
+              <label className="block font-medium text-sm sm:text-base mb-1">Tanggal Laporan</label>
+              <input type="date" className="border p-2 w-full rounded text-sm sm:text-base" value={reportDate} onChange={(e) => setReportDate(e.target.value)} />
+            </div>
+          ) : (
+            <div>
+              <label className="block font-medium text-sm sm:text-base mb-1">Minggu Laporan</label>
+              <input type="week" className="border p-2 w-full rounded text-sm sm:text-base" value={reportWeek} onChange={(e) => setReportWeek(e.target.value)} />
+            </div>
+          )}
+
+          <div className="flex items-end">
+            <div className="text-sm text-gray-600">
+              <p>
+                Total Data: <span className="font-bold">{stats.total}</span>
+              </p>
+              <p>
+                Data Ditampilkan: <span className="font-bold">{filteredRecords.length}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* STATISTIK */}
+      {filteredRecords.length > 0 && (
+        <div className="bg-white p-4 rounded-lg border border-gray-300">
+          <h2 className="text-lg font-semibold mb-3">Statistik Kesehatan</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-green-100 p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-green-700">{stats.fit}</div>
+              <div className="text-sm text-green-600">FIT</div>
+              <div className="text-xs text-green-500">{stats.fitPercentage}%</div>
+            </div>
+            <div className="bg-orange-100 p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-orange-700">{stats.fitWithNote}</div>
+              <div className="text-sm text-orange-600">FIT WITH NOTE</div>
+              <div className="text-xs text-orange-500">{stats.fitWithNotePercentage}%</div>
+            </div>
+            <div className="bg-red-100 p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-red-700">{stats.unfit}</div>
+              <div className="text-sm text-red-600">TIDAK FIT</div>
+              <div className="text-xs text-red-500">{stats.unfitPercentage}%</div>
+            </div>
+            <div className="bg-blue-100 p-4 rounded-lg text-center">
+              <div className="text-2xl font-bold text-blue-700">{stats.total}</div>
+              <div className="text-sm text-blue-600">TOTAL KARYAWAN</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FORM */}
       <div className="bg-gray-100 p-3 sm:p-4 rounded-lg">
@@ -402,6 +550,18 @@ export default function App() {
         </div>
       </div>
 
+      {/* INFO LAPORAN */}
+      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+        <div className="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+          <span className="font-medium text-blue-800">
+            Menampilkan {reportType === "daily" ? "Laporan Harian" : "Laporan Mingguan"} -{reportType === "daily" ? ` Tanggal ${new Date(reportDate).toLocaleDateString("id-ID")}` : ` Minggu ${reportWeek}`}({filteredRecords.length} data)
+          </span>
+        </div>
+      </div>
+
       {/* TABEL */}
       <div className="overflow-x-auto -mx-4 sm:mx-0">
         <div className="inline-block min-w-full align-middle">
@@ -428,7 +588,7 @@ export default function App() {
               </thead>
 
               <tbody>
-                {records.map((r, i) => (
+                {filteredRecords.map((r, i) => (
                   <tr key={i} className={r.color}>
                     <td className="border p-2 text-xs sm:text-sm">{r.nama}</td>
                     <td className="border p-2 text-xs sm:text-sm">{r.bn}</td>
@@ -471,6 +631,15 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {filteredRecords.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p className="mt-2">Tidak ada data untuk {reportType === "daily" ? "tanggal ini" : "minggu ini"}</p>
+        </div>
+      )}
     </div>
   );
 }
