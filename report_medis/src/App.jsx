@@ -22,6 +22,7 @@ export default function App() {
   const [reportDate, setReportDate] = useState(new Date().toISOString().split("T")[0]);
   const [reportWeek, setReportWeek] = useState(getCurrentWeek());
   const [previewFitness, setPreviewFitness] = useState("");
+  const [showAllRecords, setShowAllRecords] = useState(false); // State baru untuk toggle tampilan
 
   // Fungsi untuk mendapatkan minggu saat ini dalam format YYYY-Www
   function getCurrentWeek() {
@@ -163,28 +164,44 @@ export default function App() {
       updatedRecords[editIndex] = newRecord;
       setRecords(updatedRecords);
       setEditIndex(null);
+
+      // Reset form setelah edit berhasil
+      setNama("");
+      setBn("");
+      setUmur("");
+      setJabatan("");
+      setSupervisor("");
+      setDepartment("");
+      setSistolik("");
+      setDiastolik("");
+      setNadi("");
+      setSpo2("");
+      setSuhu("");
+      setTanggal("");
+      setCatatan("");
     } else {
       // Mode Tambah
       setRecords([...records, newRecord]);
-    }
 
-    // Reset form
-    setNama("");
-    setBn("");
-    setUmur("");
-    setJabatan("");
-    setSupervisor("");
-    setDepartment("");
-    setSistolik("");
-    setDiastolik("");
-    setNadi("");
-    setSpo2("");
-    setSuhu("");
-    setTanggal("");
-    setCatatan("");
+      // Reset form setelah tambah berhasil
+      setNama("");
+      setBn("");
+      setUmur("");
+      setJabatan("");
+      setSupervisor("");
+      setDepartment("");
+      setSistolik("");
+      setDiastolik("");
+      setNadi("");
+      setSpo2("");
+      setSuhu("");
+      setTanggal("");
+      setCatatan("");
+    }
   };
 
   const handleEdit = (index) => {
+    // Cari record berdasarkan index global dari semua records
     const record = records[index];
     setNama(record.nama);
     setBn(record.bn);
@@ -199,7 +216,7 @@ export default function App() {
     setSuhu(record.suhu.toString());
     setTanggal(record.tanggal);
     setCatatan(record.catatan || "");
-    setEditIndex(index);
+    setEditIndex(index); // Simpan index global
 
     // Scroll ke form
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -224,7 +241,17 @@ export default function App() {
 
   const handleDelete = (index) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus data ini?")) {
-      const newRecords = records.filter((_, i) => i !== index);
+      // Untuk delete, kita perlu mencari index global dari data yang ditampilkan
+      let actualIndex;
+      if (showAllRecords) {
+        actualIndex = index;
+      } else {
+        const filteredRecords = getFilteredRecords();
+        const recordToDelete = filteredRecords[index];
+        actualIndex = records.findIndex((r) => r.nama === recordToDelete.nama && r.tanggal === recordToDelete.tanggal && r.time === recordToDelete.time);
+      }
+
+      const newRecords = records.filter((_, i) => i !== actualIndex);
       setRecords(newRecords);
     }
   };
@@ -259,6 +286,9 @@ export default function App() {
 
   // Fungsi untuk mendapatkan data yang akan ditampilkan berdasarkan tipe laporan
   const getFilteredRecords = () => {
+    if (showAllRecords) {
+      return records;
+    }
     if (reportType === "daily") {
       return getDailyRecords();
     } else {
@@ -272,7 +302,9 @@ export default function App() {
 
     // Judul berdasarkan tipe laporan
     let reportTitle = "Laporan Kesehatan Karyawan";
-    if (reportType === "daily") {
+    if (showAllRecords) {
+      reportTitle = "Laporan Kesehatan Karyawan - Semua Data";
+    } else if (reportType === "daily") {
       reportTitle = `Laporan Kesehatan Harian - ${new Date(reportDate).toLocaleDateString("id-ID")}`;
     } else {
       reportTitle = `Laporan Kesehatan Mingguan - ${reportWeek}`;
@@ -342,7 +374,9 @@ export default function App() {
 
     // Simpan PDF
     let fileName = `laporan-kesehatan-${new Date().toLocaleDateString("id-ID")}`;
-    if (reportType === "daily") {
+    if (showAllRecords) {
+      fileName = `laporan-semua-data-${new Date().toLocaleDateString("id-ID")}`;
+    } else if (reportType === "daily") {
       fileName = `laporan-harian-${reportDate}`;
     } else {
       fileName = `laporan-mingguan-${reportWeek}`;
@@ -416,7 +450,7 @@ export default function App() {
       {/* FILTER LAPORAN */}
       <div className="bg-white p-4 rounded-lg border border-gray-300">
         <h2 className="text-lg font-semibold mb-3">Filter Laporan</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block font-medium text-sm sm:text-base mb-1">Tipe Laporan</label>
             <select className="border p-2 w-full rounded text-sm sm:text-base" value={reportType} onChange={(e) => setReportType(e.target.value)}>
@@ -436,6 +470,12 @@ export default function App() {
               <input type="week" className="border p-2 w-full rounded text-sm sm:text-base" value={reportWeek} onChange={(e) => setReportWeek(e.target.value)} />
             </div>
           )}
+
+          <div className="flex items-end">
+            <button onClick={() => setShowAllRecords(!showAllRecords)} className={`${showAllRecords ? "bg-purple-600 hover:bg-purple-700" : "bg-gray-600 hover:bg-gray-700"} text-white px-4 py-2 rounded text-sm sm:text-base w-full`}>
+              {showAllRecords ? "Tampilkan Filter" : "Tampilkan Semua"}
+            </button>
+          </div>
 
           <div className="flex items-end">
             <div className="text-sm text-gray-600">
@@ -579,7 +619,11 @@ export default function App() {
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
           </svg>
           <span className="font-medium text-blue-800">
-            Menampilkan {reportType === "daily" ? "Laporan Harian" : "Laporan Mingguan"} -{reportType === "daily" ? ` Tanggal ${new Date(reportDate).toLocaleDateString("id-ID")}` : ` Minggu ${reportWeek}`}({filteredRecords.length} data)
+            {showAllRecords
+              ? `Menampilkan Semua Data (${filteredRecords.length} data)`
+              : `Menampilkan ${reportType === "daily" ? "Laporan Harian" : "Laporan Mingguan"} -${reportType === "daily" ? ` Tanggal ${new Date(reportDate).toLocaleDateString("id-ID")}` : ` Minggu ${reportWeek}`} (${
+                  filteredRecords.length
+                } data)`}
           </span>
         </div>
       </div>
@@ -610,44 +654,49 @@ export default function App() {
               </thead>
 
               <tbody>
-                {filteredRecords.map((r, i) => (
-                  <tr key={i} className={r.color}>
-                    <td className="border p-2 text-xs sm:text-sm">{r.nama}</td>
-                    <td className="border p-2 text-xs sm:text-sm">{r.bn}</td>
-                    <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.umur}</td>
-                    <td className="border p-2 text-xs sm:text-sm hidden md:table-cell">{r.jabatan}</td>
-                    <td className="border p-2 text-xs sm:text-sm hidden xl:table-cell">{r.supervisor}</td>
-                    <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.dept}</td>
-                    <td className="border p-2 text-xs sm:text-sm">{r.systolic}</td>
-                    <td className="border p-2 text-xs sm:text-sm">{r.diastolic}</td>
-                    <td className="border p-2 text-xs sm:text-sm hidden md:table-cell">{r.nadi}</td>
-                    <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.spo2}%</td>
-                    <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.suhu}°C</td>
-                    <td className="border p-2 text-xs sm:text-sm hidden xl:table-cell">{r.tanggal}</td>
-                    <td className={`border p-2 text-xs sm:text-sm text-center ${getFitnessColor(r.fitness)}`}>{r.fitness}</td>
-                    <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.catatan || "-"}</td>
-                    <td className="border p-2 text-center">
-                      <div className="flex gap-1 justify-center">
-                        <button onClick={() => handleEdit(i)} className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs sm:text-sm inline-flex items-center gap-1" title="Edit data">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                          </svg>
-                          <span className="hidden sm:inline">Edit</span>
-                        </button>
-                        <button onClick={() => handleDelete(i)} className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs sm:text-sm inline-flex items-center gap-1" title="Hapus data">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path
-                              fillRule="evenodd"
-                              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <span className="hidden sm:inline">Hapus</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {filteredRecords.map((r, i) => {
+                  // Cari index global untuk data ini
+                  const globalIndex = records.findIndex((record) => record.nama === r.nama && record.tanggal === r.tanggal && record.time === r.time);
+
+                  return (
+                    <tr key={i} className={r.color}>
+                      <td className="border p-2 text-xs sm:text-sm">{r.nama}</td>
+                      <td className="border p-2 text-xs sm:text-sm">{r.bn}</td>
+                      <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.umur}</td>
+                      <td className="border p-2 text-xs sm:text-sm hidden md:table-cell">{r.jabatan}</td>
+                      <td className="border p-2 text-xs sm:text-sm hidden xl:table-cell">{r.supervisor}</td>
+                      <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.dept}</td>
+                      <td className="border p-2 text-xs sm:text-sm">{r.systolic}</td>
+                      <td className="border p-2 text-xs sm:text-sm">{r.diastolic}</td>
+                      <td className="border p-2 text-xs sm:text-sm hidden md:table-cell">{r.nadi}</td>
+                      <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.spo2}%</td>
+                      <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.suhu}°C</td>
+                      <td className="border p-2 text-xs sm:text-sm hidden xl:table-cell">{r.tanggal}</td>
+                      <td className={`border p-2 text-xs sm:text-sm text-center ${getFitnessColor(r.fitness)}`}>{r.fitness}</td>
+                      <td className="border p-2 text-xs sm:text-sm hidden lg:table-cell">{r.catatan || "-"}</td>
+                      <td className="border p-2 text-center">
+                        <div className="flex gap-1 justify-center">
+                          <button onClick={() => handleEdit(globalIndex)} className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs sm:text-sm inline-flex items-center gap-1" title="Edit data">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            </svg>
+                            <span className="hidden sm:inline">Edit</span>
+                          </button>
+                          <button onClick={() => handleDelete(i)} className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs sm:text-sm inline-flex items-center gap-1" title="Hapus data">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path
+                                fillRule="evenodd"
+                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <span className="hidden sm:inline">Hapus</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -659,7 +708,7 @@ export default function App() {
           <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <p className="mt-2">Tidak ada data untuk {reportType === "daily" ? "tanggal ini" : "minggu ini"}</p>
+          <p className="mt-2">Tidak ada data {showAllRecords ? "" : reportType === "daily" ? "untuk tanggal ini" : "untuk minggu ini"}</p>
         </div>
       )}
     </div>
