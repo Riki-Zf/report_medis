@@ -15,12 +15,13 @@ export default function App() {
   const [spo2, setSpo2] = useState("");
   const [suhu, setSuhu] = useState("");
   const [tanggal, setTanggal] = useState("");
-  const [catatan, setCatatan] = useState(""); // State baru untuk catatan
+  const [catatan, setCatatan] = useState("");
   const [records, setRecords] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
-  const [reportType, setReportType] = useState("daily"); // 'daily' atau 'weekly'
-  const [reportDate, setReportDate] = useState(new Date().toISOString().split("T")[0]); // Untuk daily
-  const [reportWeek, setReportWeek] = useState(getCurrentWeek()); // Untuk weekly
+  const [reportType, setReportType] = useState("daily");
+  const [reportDate, setReportDate] = useState(new Date().toISOString().split("T")[0]);
+  const [reportWeek, setReportWeek] = useState(getCurrentWeek());
+  const [previewFitness, setPreviewFitness] = useState("");
 
   // Fungsi untuk mendapatkan minggu saat ini dalam format YYYY-Www
   function getCurrentWeek() {
@@ -40,6 +41,16 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("records", JSON.stringify(records));
   }, [records]);
+
+  // Effect untuk update preview status
+  useEffect(() => {
+    if (sistolik && diastolik && nadi && spo2 && suhu) {
+      const status = getFitnessStatus(Number(sistolik), Number(diastolik), Number(nadi), Number(spo2), Number(suhu));
+      setPreviewFitness(status);
+    } else {
+      setPreviewFitness("");
+    }
+  }, [sistolik, diastolik, nadi, spo2, suhu]);
 
   const getColor = (sys, dia) => {
     if (sys < 120 && dia < 80) return "bg-green-200";
@@ -118,9 +129,10 @@ export default function App() {
       return;
     }
 
+    // Hitung ulang status fitness dengan nilai terbaru
     const fitnessStatus = getFitnessStatus(Number(sistolik), Number(diastolik), Number(nadi), Number(spo2), Number(suhu));
 
-    // Jika status FIT WITH NOTE tapi catatan kosong, beri peringatan
+    // Validasi catatan untuk status FIT WITH NOTE (baik tambah maupun edit)
     if (fitnessStatus === "FIT WITH NOTE" && !catatan.trim()) {
       alert("Harap isi catatan untuk status FIT WITH NOTE");
       return;
@@ -142,11 +154,11 @@ export default function App() {
       time: new Date().toLocaleTimeString(),
       color: getColor(Number(sistolik), Number(diastolik)),
       fitness: fitnessStatus,
-      catatan: fitnessStatus === "FIT WITH NOTE" ? catatan : "", // Simpan catatan hanya untuk FIT WITH NOTE
+      catatan: fitnessStatus === "FIT WITH NOTE" ? catatan : "",
     };
 
     if (editIndex !== null) {
-      // Mode Edit
+      // Mode Edit - pastikan data benar-benar terupdate
       const updatedRecords = [...records];
       updatedRecords[editIndex] = newRecord;
       setRecords(updatedRecords);
@@ -169,7 +181,7 @@ export default function App() {
     setSpo2("");
     setSuhu("");
     setTanggal("");
-    setCatatan(""); // Reset catatan
+    setCatatan("");
   };
 
   const handleEdit = (index) => {
@@ -186,7 +198,7 @@ export default function App() {
     setSpo2(record.spo2.toString());
     setSuhu(record.suhu.toString());
     setTanggal(record.tanggal);
-    setCatatan(record.catatan || ""); // Load catatan jika ada
+    setCatatan(record.catatan || "");
     setEditIndex(index);
 
     // Scroll ke form
@@ -207,7 +219,7 @@ export default function App() {
     setSpo2("");
     setSuhu("");
     setTanggal("");
-    setCatatan(""); // Reset catatan
+    setCatatan("");
   };
 
   const handleDelete = (index) => {
@@ -290,7 +302,7 @@ export default function App() {
       r.tanggal,
       getBloodPressureStatus(r.systolic, r.diastolic),
       r.fitness,
-      r.catatan || "-", // Tambahkan kolom catatan
+      r.catatan || "-",
     ]);
 
     autoTable(doc, {
@@ -537,6 +549,16 @@ export default function App() {
             <label className="block font-medium text-sm sm:text-base mb-1">Tanggal</label>
             <input type="date" className="border p-2 w-full rounded text-sm sm:text-base" value={tanggal} onChange={(e) => setTanggal(e.target.value)} />
           </div>
+
+          {/* Preview Status Fitness */}
+          {previewFitness && (
+            <div className="col-span-1 sm:col-span-2 lg:col-span-3">
+              <div className={`p-3 rounded-lg text-center font-bold ${getFitnessColor(previewFitness)}`}>
+                Status Preview: {previewFitness}
+                {previewFitness === "FIT WITH NOTE" && <div className="text-sm font-normal mt-1 text-orange-600">Catatan wajib diisi untuk status ini</div>}
+              </div>
+            </div>
+          )}
 
           {/* Kolom Catatan - akan muncul otomatis jika status FIT WITH NOTE */}
           <div className="col-span-1 sm:col-span-2 lg:col-span-3">
